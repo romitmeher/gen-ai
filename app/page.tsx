@@ -79,7 +79,7 @@ export default function Home() {
   const { user, loading, isSandbox, authError, signInWithGoogle, enterDemoSandbox, logout, clearAuthError } = useAuth();
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'journal' | 'guardian' | 'redteam' | 'architecture'>('journal');
+  const [activeTab, setActiveTab] = useState<'guardian' | 'journal' | 'redteam' | 'architecture'>('guardian');
   const [syncedEntries, setSyncedEntries] = useState<JournalEntry[]>([]);
 
   useEffect(() => {
@@ -350,9 +350,21 @@ export default function Home() {
 
       {/* Main Security Studio Workspace */}
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Navigation Tabs */}
-        <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+        {/* Na"        <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
           <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setActiveTab('guardian')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                activeTab === 'guardian'
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>DevSecOps Code Guardian</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setActiveTab('journal')}
@@ -364,19 +376,6 @@ export default function Home() {
             >
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
               <span>AI Journal & Brainstorming</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('guardian')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                activeTab === 'guardian'
-                  ? 'bg-zinc-100 text-zinc-900 shadow-sm font-semibold'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-              }`}
-            >
-              <Code2 className="w-3.5 h-3.5" />
-              <span>DevSecOps Code Guardian</span>
             </button>
 
             <button
@@ -404,6 +403,7 @@ export default function Home() {
               <Layers className="w-3.5 h-3.5" />
               <span>Security Architecture Ledger</span>
             </button>
+          </div>">
           </div>
 
           <span className="text-[11px] font-mono text-zinc-500 hidden md:flex items-center gap-1.5">
