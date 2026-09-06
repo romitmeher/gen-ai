@@ -188,7 +188,7 @@ export function RedteamArena() {
       {/* Target Editor & Scoreboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* System Prompt Input Canvas (6 cols) */}
-        <div className="lg:col-span-6 surface-card rounded-xl border border-white/[0.15] overflow-hidden flex flex-col h-[580px] shadow-xl">
+        <div className="lg:col-span-6 surface-card rounded-xl border border-white/[0.15] overflow-hidden flex flex-col h-[520px] shadow-xl">
           <div className="px-4 py-3 bg-black/40 border-b border-white/[0.1] flex items-center justify-between text-xs font-mono">
             <div className="flex items-center gap-2 text-zinc-200">
               <Terminal className="w-4 h-4 text-red-400" />

@@ -137,14 +137,16 @@ firebase deploy --only firestore:rules
 
 ### 4. Cloud Run Deployment Flow
 
-Deploy the container directly to Cloud Run:
+Deploy the container directly to Cloud Run passing build-time and runtime environment variables dynamically:
 
 ```bash
 gcloud run deploy aegis-studio \
   --source . \
   --region asia-south1 \
   --allow-unauthenticated \
-  --set-secrets="GEMINI_API_KEY=GEMINI_API_KEY:latest"
+  --set-secrets="GEMINI_API_KEY=GEMINI_API_KEY:latest" \
+  --set-build-env-vars="NEXT_PUBLIC_FIREBASE_API_KEY=YOUR_KEY,NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=YOUR_DOMAIN,NEXT_PUBLIC_FIREBASE_PROJECT_ID=YOUR_PROJECT" \
+  --set-env-vars="NEXT_PUBLIC_FIREBASE_API_KEY=YOUR_KEY,NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=YOUR_DOMAIN,NEXT_PUBLIC_FIREBASE_PROJECT_ID=YOUR_PROJECT"
 ```
 
 ### 5. Required Campaign Labeling

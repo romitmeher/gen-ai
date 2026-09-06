@@ -53,16 +53,17 @@ const PRESET_VULNERABILITIES = [
     code: `import express from 'express';
 const app = express();
 
-// CRITICAL FLAW: Hardcoded Google Cloud Secret
-const GEMINI_API_KEY = "AIzaSyD-X9sampleKeyExposedDirectlyInRepo_99812";
+// ⚠️  DEMO PRESET — INTENTIONAL VULNERABILITY SAMPLE
+// CRITICAL FLAW: Hardcoded secret in source code (CWE-798 / OWASP A07)
+const GEMINI_API_KEY = "YOUR_API_KEY_HERE"; // Never do this — use Secret Manager
 
 app.post('/api/reflect', (req, res) => {
-  // CRITICAL FLAW: Unchecked JSON deserialization & missing JWT validation
-  const userData = req.body; 
-  
-  // CRITICAL FLAW: Dynamic code execution
+  // CRITICAL FLAW: Unchecked JSON deserialization & missing JWT validation (CWE-20)
+  const userData = req.body;
+
+  // CRITICAL FLAW: Dynamic code execution — Remote Code Execution risk (CWE-95)
   const dynamicCallback = eval(userData.callbackScript);
-  
+
   res.json({ status: "success", data: dynamicCallback });
 });`,
   },
@@ -243,7 +244,7 @@ export function CodeGuardian() {
       {/* Editor & Scan Console Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Code Input Canvas (7 cols) */}
-        <div className="lg:col-span-7 surface-card rounded-xl border border-white/[0.15] overflow-hidden flex flex-col h-[620px] shadow-xl">
+        <div className="lg:col-span-7 surface-card rounded-xl border border-white/[0.15] overflow-hidden flex flex-col h-[560px] shadow-xl">
           {/* Editor Header Bar */}
           <div className="px-4 py-3 bg-black/40 border-b border-white/[0.1] flex items-center justify-between gap-3 text-xs font-mono">
             <div className="flex items-center gap-2 text-zinc-200">

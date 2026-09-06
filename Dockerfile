@@ -1,5 +1,5 @@
 # Step 1: Base image
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 
 # Step 2: Install dependencies only when needed
 FROM base AS deps
@@ -8,7 +8,7 @@ WORKDIR /app
 
 # Install dependencies based on package-lock.json
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install
 
 # Step 3: Rebuild the source code only when needed
 FROM base AS builder
@@ -18,6 +18,24 @@ COPY . .
 
 # Disable Next.js telemetry during build
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# NEXT_PUBLIC_* variables are baked into the Next.js client bundle at build time.
+# Supply them via --build-env-vars in gcloud run deploy, or they are read from
+# the .env file present in the source upload (excluded from git via .gitignore).
+# DO NOT hardcode values here — see README.md Secret Management section.
+ARG NEXT_PUBLIC_FIREBASE_API_KEY
+ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+ARG NEXT_PUBLIC_FIREBASE_PROJECT_ID
+ARG NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+ARG NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+ARG NEXT_PUBLIC_FIREBASE_APP_ID
+
+ENV NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY
+ENV NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+ENV NEXT_PUBLIC_FIREBASE_PROJECT_ID=$NEXT_PUBLIC_FIREBASE_PROJECT_ID
+ENV NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+ENV NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+ENV NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID
 
 RUN npm run build
 

@@ -108,7 +108,7 @@ export default function Home() {
 
         {/* Minimal Header */}
         <header className="relative z-20 border-b border-white/[0.08] backdrop-blur-md bg-[#090a0f]/60 px-6 py-4">
-          <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="max-w-[1400px] mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -289,7 +289,7 @@ export default function Home() {
 
       {/* Top Header */}
       <header className="sticky top-0 z-40 border-b border-white/[0.08] backdrop-blur-md bg-[#090a0f]/80 px-4 sm:px-6 py-3">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
@@ -347,7 +347,7 @@ export default function Home() {
       </header>
 
       {/* Main Security Studio Workspace */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Navigation Tabs */}
         <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
           <div className="flex items-center gap-2">
