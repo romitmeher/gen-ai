@@ -18,9 +18,13 @@ import {
   Mic,
   MicOff,
   Shield,
+  Paperclip,
+  FileUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ReflectionPersona, PERSONA_PROMPTS } from '@/lib/gemini-fallback';
+import { FileImportModal } from '@/components/file-import-modal';
+
 
 interface Message {
   role: 'user' | 'assistant';
@@ -68,6 +72,26 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
   const [lastModelUsed, setLastModelUsed] = useState<string>('gemini-3.6-flash');
   const [isListening, setIsListening] = useState(false);
   const [sessionSummary, setSessionSummary] = useState<{ title: string; summary: string } | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result;
+      if (typeof text === 'string') {
+        const ext = file.name.split('.').pop() || '';
+        const codeBlock = `\n\n\`\`\`${ext}\n// File: ${file.name}\n${text.slice(0, 10000)}\n\`\`\`\n`;
+        setInput((prev) => (prev ? `${prev}${codeBlock}` : `Attached code file (${file.name}):${codeBlock}`));
+      }
+    };
+    reader.readAsText(file);
+    if (e.target) e.target.value = '';
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -346,6 +370,16 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsImportModalOpen(true)}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-mono font-medium text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 transition-all flex items-center gap-1.5 shrink-0 shadow-xs"
+            title="Import code from GitHub repository, Google Drive, or upload local file"
+          >
+            <FileUp className="w-3.5 h-3.5" />
+            <span>Import Code</span>
+          </button>
+
           {messages.length > 0 && (
             <>
               <button
@@ -356,6 +390,7 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
               >
                 New Session
               </button>
+
 
               <motion.button
                 layout
@@ -575,6 +610,24 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
             rows={1}
           />
 
+          {/* Paperclip File Upload */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            className="hidden"
+            accept=".ts,.tsx,.js,.jsx,.py,.java,.go,.cpp,.c,.cs,.html,.css,.json,.md,.txt,.rules,.yaml,.yml,Dockerfile"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="Attach code or text file"
+            className="h-11 w-11 flex-shrink-0 bg-white/[0.04] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.08] border border-white/[0.08] rounded-lg flex items-center justify-center transition-all"
+            title="Attach code file (.ts, .py, .js, .rules, Dockerfile, etc.)"
+          >
+            <Paperclip className="w-4 h-4" />
+          </button>
+
           {/* Voice dictation toggle */}
           <button
             type="button"
@@ -610,6 +663,17 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
           </span>
         </div>
       </div>
+
+      {/* Import Code Modal (GitHub / Google Drive / Local Files) */}
+      <FileImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportSuccess={(data) => {
+          const codeSnippet = `\n\n\`\`\`${data.language}\n// File: ${data.filename}\n${data.code.slice(0, 10000)}\n\`\`\`\n`;
+          setInput((prev) => (prev ? `${prev}${codeSnippet}` : `Imported code file (${data.filename}):${codeSnippet}`));
+        }}
+      />
     </div>
   );
 }
+
