@@ -7,7 +7,9 @@ import { CodeGuardian } from '@/components/code-guardian';
 import { RedteamArena } from '@/components/redteam-arena';
 import { ChatInterface } from '@/components/chat-interface';
 import { WisdomSynthesis } from '@/components/wisdom-synthesis';
+import { JournalHistory } from '@/components/journal-history';
 import { SecurityInspectorModal } from '@/components/security-inspector-modal';
+
 import { PrivacyDataModal } from '@/components/privacy-data-modal';
 import { JournalEntry } from '@/components/journal-detail-modal';
 import {
@@ -410,10 +412,16 @@ export default function Home() {
           </span>
         </div>
 
-        {/* Tab 1: AI Journal & Brainstorming Chat Loop */}
+        {/* Tab 1: AI Journal & Brainstorming Chat Loop & History Vault */}
         {activeTab === 'journal' && (
-          <ChatInterface />
+          <div className="space-y-8">
+            <ChatInterface />
+            <div className="pt-6 border-t border-white/[0.08]">
+              <JournalHistory onSelectPrompt={() => {}} onEntriesChange={setSyncedEntries} />
+            </div>
+          </div>
         )}
+
 
         {/* Tab 2: DevSecOps Code Guardian */}
         {activeTab === 'guardian' && (

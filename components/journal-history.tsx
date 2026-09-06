@@ -108,32 +108,73 @@ export function JournalHistory({ onSelectPrompt, onEntriesChange }: JournalHisto
       return;
     }
 
-    // Standard Firebase Auth mode: Fetch from Firestore using owner-isolated path
-    const q = query(
-      collection(db, 'users', user.uid, 'journals'),
-      orderBy('createdAt', 'desc')
-    );
+    // Standard Firebase Auth mode: Fetch from Firestore using owner-isolated paths (journals & journal)
+    const journalsRef = collection(db, 'users', user.uid, 'journals');
+    const journalRef = collection(db, 'users', user.uid, 'journal');
 
-    const unsubscribe = onSnapshot(
-      q,
+    const q1 = query(journalsRef, orderBy('createdAt', 'desc'));
+    const q2 = query(journalRef, orderBy('createdAt', 'desc'));
+
+    const entriesMap = new Map<string, JournalEntry>();
+
+    const updateCombined = () => {
+      const combined = Array.from(entriesMap.values()).sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      setEntries(combined);
+      onEntriesChange?.(combined);
+      setLoading(false);
+    };
+
+    const unsub1 = onSnapshot(
+      q1,
       (snapshot) => {
-        const fetchedEntries: JournalEntry[] = [];
         snapshot.forEach((docSnap) => {
-          fetchedEntries.push({ id: docSnap.id, ...docSnap.data() } as JournalEntry);
+          entriesMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() } as JournalEntry);
         });
-        setEntries(fetchedEntries);
-        onEntriesChange?.(fetchedEntries);
-        setLoading(false);
+        updateCombined();
       },
       (err) => {
-        console.error('Error fetching journals:', err);
-        setError('Failed to load journals. Access strictly restricted.');
+        console.warn('Journals snapshot error:', err);
         setLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    const unsub2 = onSnapshot(
+      q2,
+      (snapshot) => {
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.summary || data.title) {
+            entriesMap.set(docSnap.id, {
+              id: docSnap.id,
+              createdAt: data.createdAt || data.updatedAt || new Date().toISOString(),
+              summary: data.summary || data.title || 'Multi-turn reflection session',
+              mood: data.mood || 'Reflective',
+              color: data.color || '#0071E3',
+              reflectionPrompt: data.title ? `Topic: ${data.title}` : 'Saved Session',
+              tags: Array.isArray(data.tags) ? data.tags : ['Brainstorming'],
+              cognitivePatterns: Array.isArray(data.cognitivePatterns) ? data.cognitivePatterns : ['Reflective Thought'],
+              growthOpportunity: data.growthOpportunity || 'Review past insights to guide current decisions.',
+              sentimentScore: typeof data.sentimentScore === 'number' ? data.sentimentScore : 0.4,
+              ...data,
+            } as JournalEntry);
+          }
+        });
+        updateCombined();
+      },
+      (err) => {
+        console.warn('Journal snapshot error:', err);
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      unsub1();
+      unsub2();
+    };
   }, [user, onEntriesChange]);
+
 
   // Available unique moods for filtering
   const availableMoods = useMemo(() => {
