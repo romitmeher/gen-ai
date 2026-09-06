@@ -1,6 +1,6 @@
-@import "tailwindcss";
-
-@custom-variant dark (&:where(.dark, .dark *));
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
   :root {
@@ -88,24 +88,6 @@
 .bg-dot-grid {
   background-image: radial-gradient(rgba(255, 255, 255, 0.10) 1px, transparent 1px);
   background-size: 20px 20px;
-}
-
-/* Refined Subtle Glows (Architectural, not neon) */
-.glow-subtle {
-  box-shadow: 0 0 50px -10px rgba(59, 130, 246, 0.08);
-}
-
-.glow-emerald {
-  box-shadow: 0 0 40px -10px rgba(16, 185, 129, 0.12);
-}
-
-/* Precision Keylines */
-.keyline-bottom {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.keyline-top {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* High-Contrast Code / Monospace Styling */
