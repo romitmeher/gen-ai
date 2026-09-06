@@ -414,9 +414,11 @@ export default function Home() {
 
         {/* Tab 1: AI Journal & Brainstorming Chat Loop & History Vault */}
         {activeTab === 'journal' && (
-          <div className="space-y-8">
-            <ChatInterface />
-            <div className="pt-6 border-t border-white/[0.08]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="lg:col-span-7">
+              <ChatInterface />
+            </div>
+            <div className="lg:col-span-5">
               <JournalHistory onSelectPrompt={() => {}} onEntriesChange={setSyncedEntries} />
             </div>
           </div>

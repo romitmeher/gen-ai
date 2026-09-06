@@ -4,10 +4,9 @@ import { useEffect, useState, useMemo } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/auth-provider';
-import { Calendar, Search, ArrowUpRight, BookOpen, Filter, Sparkles, Brain, Compass, Heart, HelpCircle, Zap } from 'lucide-react';
+import { Calendar, Search, ArrowUpRight, BookOpen, Filter, Sparkles, Brain, Compass, Heart, HelpCircle, Zap, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { JournalDetailModal, JournalEntry } from '@/components/journal-detail-modal';
-import { JournalHistorySkeletonGroup } from '@/components/journal-skeleton';
 import { getMoodTheme } from '@/lib/mood-colors';
 
 interface JournalHistoryProps {
@@ -21,7 +20,7 @@ const INITIAL_SANDBOX_ENTRIES: JournalEntry[] = [
     createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
     summary: 'Reflected on balancing security rigor with rapid development speed. Decided that building security-first upfront prevents catastrophic refactoring later.',
     mood: 'Focused',
-    color: '#0071E3',
+    color: '#10b981',
     reflectionPrompt: 'What is one recurring assumption you can test today?',
     tags: ['Architecture', 'Security', 'Discipline'],
     cognitivePatterns: ['Growth Mindset', 'Rational Clarity'],
@@ -38,7 +37,7 @@ const INITIAL_SANDBOX_ENTRIES: JournalEntry[] = [
     createdAt: new Date(Date.now() - 86400000 * 1.5).toISOString(),
     summary: 'Expressed gratitude for supportive teammates during an intense hackathon sprint. Recognized feelings of impostor syndrome and reframed them into curiosity.',
     mood: 'Grateful',
-    color: '#34C759',
+    color: '#3b82f6',
     reflectionPrompt: 'Who can you express appreciation to tomorrow?',
     tags: ['Gratitude', 'Teamwork', 'Mindfulness'],
     cognitivePatterns: ['Gratitude Focus', 'Impostor Syndrome Reframed'],
@@ -55,7 +54,7 @@ const INITIAL_SANDBOX_ENTRIES: JournalEntry[] = [
     createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
     summary: 'Deconstructed a complex feature backlog into 3 high-impact milestones, eliminating 4 non-critical distractions.',
     mood: 'Motivated',
-    color: '#AF52DE',
+    color: '#8b5cf6',
     reflectionPrompt: 'What single task, if completed, makes everything else easier?',
     tags: ['Strategy', 'Execution', 'Prioritization'],
     cognitivePatterns: ['Strategic Focus', 'Noise Elimination'],
@@ -73,7 +72,6 @@ export function JournalHistory({ onSelectPrompt, onEntriesChange }: JournalHisto
   const { user } = useAuth();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(Boolean(user));
-  const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMood, setSelectedMood] = useState<string>('All');
   const [activeEntry, setActiveEntry] = useState<JournalEntry | null>(null);
@@ -82,7 +80,6 @@ export function JournalHistory({ onSelectPrompt, onEntriesChange }: JournalHisto
     if (!user) return;
 
     if (user.isSandbox) {
-      // Sandbox mode: Fetch from export endpoint or load demo set
       const fetchSandbox = async () => {
         try {
           const res = await fetch('/api/journal/export?format=json', {
@@ -108,7 +105,6 @@ export function JournalHistory({ onSelectPrompt, onEntriesChange }: JournalHisto
       return;
     }
 
-    // Standard Firebase Auth mode: Fetch from Firestore using owner-isolated paths (journals & journal)
     const journalsRef = collection(db, 'users', user.uid, 'journals');
     const journalRef = collection(db, 'users', user.uid, 'journal');
 
@@ -151,7 +147,7 @@ export function JournalHistory({ onSelectPrompt, onEntriesChange }: JournalHisto
               createdAt: data.createdAt || data.updatedAt || new Date().toISOString(),
               summary: data.summary || data.title || 'Multi-turn reflection session',
               mood: data.mood || 'Reflective',
-              color: data.color || '#0071E3',
+              color: data.color || '#10b981',
               reflectionPrompt: data.title ? `Topic: ${data.title}` : 'Saved Session',
               tags: Array.isArray(data.tags) ? data.tags : ['Brainstorming'],
               cognitivePatterns: Array.isArray(data.cognitivePatterns) ? data.cognitivePatterns : ['Reflective Thought'],
@@ -175,8 +171,6 @@ export function JournalHistory({ onSelectPrompt, onEntriesChange }: JournalHisto
     };
   }, [user, onEntriesChange]);
 
-
-  // Available unique moods for filtering
   const availableMoods = useMemo(() => {
     const moods = new Set<string>();
     entries.forEach((e) => {
@@ -185,7 +179,6 @@ export function JournalHistory({ onSelectPrompt, onEntriesChange }: JournalHisto
     return ['All', ...Array.from(moods)];
   }, [entries]);
 
-  // Filtered entries based on search and mood
   const filteredEntries = useMemo(() => {
     return entries.filter((entry) => {
       const matchesMood = selectedMood === 'All' || entry.mood === selectedMood;
@@ -225,110 +218,77 @@ export function JournalHistory({ onSelectPrompt, onEntriesChange }: JournalHisto
     return Heart;
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="h-5 w-36 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
-          <div className="h-8 w-44 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
-        </div>
-        <JournalHistorySkeletonGroup count={3} />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div
-        role="alert"
-        className="bg-rose-500/10 backdrop-blur-md border border-rose-500/20 rounded-2xl p-5 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2"
-      >
-        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-        <span>{error}</span>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-      {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-indigo-500" />
-            <span>Reflections Vault</span>
-            <span className="text-xs font-normal text-slate-400">({entries.length})</span>
-          </h2>
+    <div className="surface-card rounded-xl border border-white/[0.12] p-5 space-y-4 shadow-xl flex flex-col h-[680px]">
+      {/* Header & Search Bar */}
+      <div className="space-y-3 pb-3 border-b border-white/[0.08] shrink-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-sm font-semibold text-zinc-100 tracking-tight">Reflections Vault</h3>
+            <span className="text-xs font-mono px-2 py-0.5 rounded bg-white/[0.06] text-zinc-400 border border-white/[0.08]">
+              {entries.length}
+            </span>
+          </div>
         </div>
 
-        {/* Search input with focus-visible accessibility */}
-        <div className="relative max-w-xs w-full">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        {/* Search input */}
+        <div className="relative w-full">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search reflections, tags, moods..."
-            aria-label="Search reflection archive"
-            className="w-full pl-8 pr-3 py-1.5 rounded-xl text-xs bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/30 transition-all shadow-2xs"
+            className="w-full pl-8 pr-3 py-1.5 rounded-lg text-xs bg-black/40 border border-white/[0.1] text-zinc-100 placeholder:text-zinc-500 focus:outline-hidden focus:border-emerald-500/50 transition-all font-mono"
           />
         </div>
+
+        {/* Mood Filter Pills */}
+        {availableMoods.length > 2 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+            <span className="text-[10px] text-zinc-500 uppercase font-mono shrink-0">Mood:</span>
+            {availableMoods.map((mood) => {
+              const isSelected = selectedMood === mood;
+              return (
+                <button
+                  key={mood}
+                  onClick={() => setSelectedMood(mood)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono transition-all whitespace-nowrap ${
+                    isSelected
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-semibold'
+                      : 'bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'
+                  }`}
+                >
+                  {mood}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Mood Filter Pills */}
-      {availableMoods.length > 2 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs" role="toolbar" aria-label="Filter reflections by mood">
-          <span className="text-[11px] text-slate-400 flex items-center gap-1 mr-1">
-            <Filter className="w-3 h-3" />
-            Mood:
-          </span>
-          {availableMoods.map((mood) => {
-            const isSelected = selectedMood === mood;
-            const moodTheme = mood !== 'All' ? getMoodTheme(mood) : null;
-            return (
-              <button
-                key={mood}
-                onClick={() => setSelectedMood(mood)}
-                aria-pressed={isSelected}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
-                  isSelected
-                    ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-xs scale-[1.02]'
-                    : 'bg-white/80 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-800'
-                }`}
-              >
-                {mood !== 'All' && moodTheme && (
-                  <span
-                    className="inline-block w-1.5 h-1.5 rounded-full mr-1.5"
-                    style={{ backgroundColor: moodTheme.dotColor }}
-                  />
-                )}
-                {mood}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Zero State */}
-      {filteredEntries.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white/70 dark:bg-slate-900/50 backdrop-blur-md border border-slate-200/70 dark:border-slate-800 rounded-2xl p-8 text-center space-y-2 shadow-2xs"
-        >
-          <Calendar className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto stroke-[1.5]" />
-          <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
-            {entries.length === 0 ? 'No reflections saved yet' : 'No matching entries found'}
-          </p>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto">
-            {entries.length === 0
-              ? 'Converse with Gemini and click "Save Reflection" to distill and preserve your session.'
-              : 'Try clearing your search query or selecting "All" moods.'}
-          </p>
-        </motion.div>
-      ) : (
-        /* Animated Reflection Cards Grid */
-        <motion.div layout className="grid grid-cols-1 gap-3.5">
+      {/* Vault List Container */}
+      <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+        {loading ? (
+          <div className="space-y-3 p-4">
+            <div className="h-16 bg-white/[0.04] rounded-lg animate-pulse" />
+            <div className="h-16 bg-white/[0.04] rounded-lg animate-pulse" />
+            <div className="h-16 bg-white/[0.04] rounded-lg animate-pulse" />
+          </div>
+        ) : filteredEntries.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center p-8 text-center text-zinc-500 space-y-2">
+            <Calendar className="w-8 h-8 text-zinc-600 stroke-[1.5]" />
+            <p className="text-xs font-medium text-zinc-300">
+              {entries.length === 0 ? 'No saved reflections yet' : 'No matching entries'}
+            </p>
+            <p className="text-[11px] text-zinc-500 max-w-xs">
+              {entries.length === 0
+                ? 'Brainstorm in the chat canvas and click "Save & Summarize" to save your session here.'
+                : 'Try adjusting your search filter.'}
+            </p>
+          </div>
+        ) : (
           <AnimatePresence mode="popLayout">
             {filteredEntries.map((entry) => {
               const theme = getMoodTheme(entry.mood);
@@ -337,102 +297,56 @@ export function JournalHistory({ onSelectPrompt, onEntriesChange }: JournalHisto
               return (
                 <motion.div
                   layout
-                  initial={{ opacity: 0, y: 12 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.96 }}
-                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  transition={{ duration: 0.2 }}
                   key={entry.id}
                   onClick={() => setActiveEntry(entry)}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Reflection from ${new Date(entry.createdAt).toLocaleDateString()}, mood: ${entry.mood || 'Reflective'}`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setActiveEntry(entry);
-                    }
-                  }}
-                  className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 hover:border-indigo-500/40 rounded-2xl p-4 transition-all hover:shadow-md cursor-pointer group relative flex flex-col justify-between"
+                  className="p-3.5 rounded-lg bg-black/40 hover:bg-black/60 border border-white/[0.08] hover:border-emerald-500/30 transition-all cursor-pointer group space-y-2"
                 >
-                  <div>
-                    {/* Meta row */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className="w-2 h-2 rounded-full flex-shrink-0 transition-transform group-hover:scale-125"
-                          style={{ backgroundColor: theme.dotColor }}
-                        />
-                        <span
-                          className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder}`}
-                        >
-                          {entry.mood || 'Reflective'}
-                        </span>
-
-                        {entry.persona && (
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 font-medium">
-                            <PersonaIcon className="w-2.5 h-2.5" />
-                            <span className="capitalize">{entry.persona}</span>
-                          </span>
-                        )}
-
-                        {Array.isArray(entry.tags) && entry.tags.length > 0 && (
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            #{entry.tags[0]}
-                          </span>
-                        )}
-                      </div>
-
-                      <span className="text-[11px] text-slate-400">
-                        {new Date(entry.createdAt).toLocaleDateString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: theme.dotColor || '#10b981' }}
+                      />
+                      <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08]">
+                        {entry.mood || 'Reflective'}
                       </span>
+                      {entry.tags?.[0] && (
+                        <span className="text-[10px] font-mono text-zinc-500">#{entry.tags[0]}</span>
+                      )}
                     </div>
 
-                    {/* Summary */}
-                    <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-normal line-clamp-3 mb-2.5">
-                      {entry.summary}
-                    </p>
-
-                    {/* Cognitive Pattern Pill (if present) */}
-                    {Array.isArray(entry.cognitivePatterns) && entry.cognitivePatterns.length > 0 && (
-                      <div className="flex items-center gap-1 mb-2.5">
-                        <Brain className="w-2.5 h-2.5 text-purple-500 flex-shrink-0" />
-                        <span className="text-[10px] text-purple-600 dark:text-purple-300 font-medium truncate">
-                          {entry.cognitivePatterns[0]}
-                        </span>
-                      </div>
-                    )}
+                    <span className="text-[10px] font-mono text-zinc-500">
+                      {new Date(entry.createdAt).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
                   </div>
 
-                  {/* Reflection Prompt / Continue action */}
-                  {entry.reflectionPrompt && (
-                    <div className="pt-2 border-t border-slate-100/90 dark:border-slate-800/80 flex items-center justify-between gap-2">
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 italic truncate flex items-center gap-1.5">
-                        <Sparkles className="w-3 h-3 text-indigo-500 flex-shrink-0" />
-                        <span className="truncate">&ldquo;{entry.reflectionPrompt}&rdquo;</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectPrompt(entry.reflectionPrompt);
-                        }}
-                        className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-1 flex-shrink-0"
-                        title="Continue this thought in chat"
-                      >
-                        <span>Continue</span>
-                        <ArrowUpRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                      </button>
-                    </div>
-                  )}
+                  <p className="text-xs text-zinc-300 leading-relaxed font-normal line-clamp-2">
+                    {entry.summary}
+                  </p>
+
+                  <div className="pt-2 border-t border-white/[0.04] flex items-center justify-between text-[10px] text-zinc-500 font-mono">
+                    <span className="truncate flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
+                      <span className="truncate">{entry.reflectionPrompt || 'Saved Reflection'}</span>
+                    </span>
+                    <span className="text-emerald-400 group-hover:translate-x-0.5 transition-transform shrink-0 flex items-center gap-0.5">
+                      <span>View</span>
+                      <ArrowUpRight className="w-3 h-3" />
+                    </span>
+                  </div>
                 </motion.div>
               );
             })}
           </AnimatePresence>
-        </motion.div>
-      )}
+        )}
+      </div>
 
       {/* Reflection Detail & Transcript Modal */}
       <JournalDetailModal
