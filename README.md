@@ -142,7 +142,7 @@ Deploy the container directly to Cloud Run:
 ```bash
 gcloud run deploy aegis-studio \
   --source . \
-  --region us-central1 \
+  --region asia-south1 \
   --allow-unauthenticated \
   --set-secrets="GEMINI_API_KEY=GEMINI_API_KEY:latest"
 ```
@@ -154,7 +154,7 @@ Register the service for automated challenge verification:
 ```bash
 gcloud run services update aegis-studio \
   --update-labels=dev-tutorial=cloud-run-ai-challenge \
-  --region=us-central1
+  --region=asia-south1
 ```
 
 ---
