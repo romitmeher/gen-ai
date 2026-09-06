@@ -24,6 +24,12 @@ export const metadata: Metadata = {
   },
 };
 
+// Force all pages to be server-rendered on demand — prevents Firebase from
+// initialising during the Next.js static-page-generation (SSG) build step,
+// which would crash with auth/invalid-api-key when env vars aren't present.
+export const dynamic = 'force-dynamic';
+
+
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" className={inter.variable}>

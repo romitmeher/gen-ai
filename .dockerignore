@@ -5,8 +5,9 @@ node_modules
 .git
 .env
 .env*.local
-.env.production
-.env.development
+# .env.production is intentionally included — it contains only public NEXT_PUBLIC_* Firebase
+# web config values which are safe to ship in client bundles (see Firebase docs).
+# .env (with real secrets) remains excluded above.
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

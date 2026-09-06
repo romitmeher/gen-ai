@@ -1,0 +1,78 @@
+name: Deploy to Cloud Run (Mumbai)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+env:
+  SERVICE_NAME: aegis-studio
+  REGION: asia-south1
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
+jobs:
+  deploy:
+    name: Build & Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for Workload Identity Federation (preferred)
+
+    steps:
+      # ── 1. Checkout source ──────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Authenticate to Google Cloud ─────────────────────────────────
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # ── 3. Set up Cloud SDK ──────────────────────────────────────────────
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      # ── 4. Create .env.production with public Firebase client config ─────
+      # NEXT_PUBLIC_* values are Firebase web client keys — they are
+      # intentionally public per Firebase docs and safe in client bundles.
+      # Server-side secrets (GEMINI_API_KEY, FIREBASE_PRIVATE_KEY) are
+      # injected at runtime via Cloud Run Secret Manager mounts — never here.
+      - name: Create .env.production
+        run: |
+          cat > .env.production << 'EOF'
+          NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+          EOF
+
+      # ── 5. Deploy to Cloud Run (source-based build via Cloud Build) ──────
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --source . \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --set-secrets="GEMINI_API_KEY=GEMINI_API_KEY:latest" \
+            --project ${{ secrets.GCP_PROJECT_ID }}
+
+      # ── 6. Apply challenge verification label ────────────────────────────
+      - name: Apply campaign label
+        run: |
+          gcloud run services update ${{ env.SERVICE_NAME }} \
+            --update-labels=dev-tutorial=cloud-run-ai-challenge \
+            --region ${{ env.REGION }} \
+            --project ${{ secrets.GCP_PROJECT_ID }}
+
+      # ── 7. Print live URL ────────────────────────────────────────────────
+      - name: Print service URL
+        run: |
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --project ${{ secrets.GCP_PROJECT_ID }} \
+            --format="value(status.url)"

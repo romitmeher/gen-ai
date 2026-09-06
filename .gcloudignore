@@ -1,0 +1,25 @@
+# .gcloudignore — controls what gcloud run deploy --source . uploads to Cloud Build.
+# This overrides .gitignore for the gcloud source upload.
+
+.gcloudignore
+.git
+.gitignore
+
+# Build artifacts and dev files
+node_modules/
+.next/
+*.log
+npm-debug.log*
+yarn-debug.log*
+tsconfig.tsbuildinfo
+.tempmediaStorage/
+
+# Real secrets — NEVER upload these
+.env
+.env.local
+.env.*.local
+
+# .env.production is intentionally included — it contains ONLY public
+# NEXT_PUBLIC_* Firebase web config values which are safe in client bundles.
+# It is created by the GitHub Actions workflow from GitHub Secrets.
+# !.env.production  ← already included by default (not listed above)
