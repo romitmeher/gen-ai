@@ -516,17 +516,28 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[82%] rounded-2xl px-4.5 py-3 text-xs leading-relaxed shadow-2xs ${
+                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-lg ${
                     msg.role === 'user'
-                      ? 'bg-slate-900 dark:bg-indigo-600 text-white rounded-br-xs'
-                      : 'bg-white/90 dark:bg-slate-800/90 backdrop-blur-md text-slate-800 dark:text-slate-200 rounded-bl-xs border border-slate-200/70 dark:border-slate-800'
+                      ? 'bg-emerald-600 text-white rounded-br-xs font-medium border border-emerald-500/30'
+                      : 'bg-[#181c28] text-zinc-100 rounded-bl-xs border border-white/10 shadow-xl'
                   }`}
                 >
                   {msg.role === 'user' ? (
                     <div className="whitespace-pre-wrap font-normal">{msg.content}</div>
                   ) : (
-                    <div className="prose prose-xs max-w-none text-slate-800 dark:text-slate-200">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between pb-2 border-b border-white/10 text-[10px] font-mono text-zinc-400">
+                        <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                          <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                          AEGIS Security Advisor ({PERSONA_PROMPTS[persona].name})
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 border border-white/[0.08]">
+                          {lastModelUsed}
+                        </span>
+                      </div>
+                      <div className="prose prose-invert prose-xs max-w-none text-zinc-200 leading-relaxed">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -541,9 +552,9 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
             animate={{ opacity: 1, y: 0 }}
             className="flex justify-start"
           >
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl rounded-bl-xs px-4 py-2.5 flex items-center gap-2.5 text-slate-500 dark:text-slate-400 border border-slate-200/70 dark:border-slate-800 shadow-2xs">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
-              <span className="text-xs font-medium">Reflecting with {PERSONA_PROMPTS[persona].name}...</span>
+            <div className="bg-[#181c28] rounded-2xl rounded-bl-xs px-4 py-2.5 flex items-center gap-2.5 text-emerald-400 border border-white/10 shadow-lg font-mono text-xs">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+              <span>Reflecting with {PERSONA_PROMPTS[persona].name}...</span>
             </div>
           </motion.div>
         )}
@@ -557,18 +568,18 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-rose-500/10 backdrop-blur-md border-t border-rose-500/20 px-4 py-2 flex items-center justify-between text-xs text-rose-700 dark:text-rose-300"
+            className="bg-rose-500/10 border-t border-rose-500/20 px-4 py-2 flex items-center justify-between text-xs text-rose-300 font-mono"
             role="alert"
           >
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
               <span>{errorMessage}</span>
             </div>
             {saveFailed && (
               <button
                 type="button"
                 onClick={saveAndSummarize}
-                className="font-medium underline hover:text-rose-900 ml-2"
+                className="font-medium underline hover:text-rose-200 ml-2"
               >
                 Retry
               </button>
@@ -578,7 +589,7 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
       </AnimatePresence>
 
       {/* Input Bar */}
-      <div className="p-3 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200/60 dark:border-slate-800">
+      <div className="p-3 bg-[#0e1017] border-t border-white/10">
         <form
           onSubmit={(e) => {
             e.preventDefault();
