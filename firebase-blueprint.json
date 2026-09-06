@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "JournalEntry": {
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The Firebase Auth UID of the document owner"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO 8601 creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO 8601 last modified timestamp"
+        },
+        "summary": {
+          "type": "string",
+          "description": "Concise AI-generated summary of the journal session"
+        },
+        "mood": {
+          "type": "string",
+          "description": "Extracted emotional state (e.g. Reflective, Calm, Grateful, Focused)"
+        },
+        "color": {
+          "type": "string",
+          "description": "Apple HIG semantic color hex representing the mood"
+        },
+        "reflectionPrompt": {
+          "type": "string",
+          "description": "Thoughtful reflective follow-up question for tomorrow"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Identified themes and topics"
+        },
+        "messages": {
+          "type": "array",
+          "description": "Complete multi-turn message transcripts with roles"
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read, write: if false;\n    }\n    match /users/{userId}/journals/{journalId} {\n      allow read, delete: if request.auth != null && request.auth.uid == userId;\n      allow create, update: if request.auth != null && request.auth.uid == userId && (!('userId' in request.resource.data) || request.resource.data.userId == userId);\n    }\n  }\n}"
+  }
+}
