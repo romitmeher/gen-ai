@@ -213,7 +213,7 @@ export function CodeGuardian() {
                 key={idx}
                 type="button"
                 onClick={() => loadPreset(p)}
-                className="text-xs px-2.5 py-1 rounded-md bg-white/[0.03] hover:bg-white/[0.08] text-zinc-300 hover:text-white border border-white/[0.06] hover:border-white/[0.15] transition-all whitespace-nowrap"
+                className="text-xs px-3 py-1.5 rounded-md bg-white/[0.08] hover:bg-white/[0.15] text-zinc-200 hover:text-white border border-white/[0.12] hover:border-white/[0.25] transition-all whitespace-nowrap font-medium"
               >
                 {p.name}
               </button>
