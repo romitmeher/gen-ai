@@ -13,6 +13,7 @@ RUN npm install
 # Step 3: Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+RUN mkdir -p /app/public
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
