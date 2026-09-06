@@ -77,7 +77,7 @@ export default function Home() {
   const { user, loading, isSandbox, authError, signInWithGoogle, enterDemoSandbox, logout, clearAuthError } = useAuth();
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'guardian' | 'redteam' | 'architecture'>('guardian');
+  const [activeTab, setActiveTab] = useState<'journal' | 'guardian' | 'redteam' | 'architecture'>('journal');
   const [syncedEntries, setSyncedEntries] = useState<JournalEntry[]>([]);
 
   useEffect(() => {
@@ -350,7 +350,20 @@ export default function Home() {
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Navigation Tabs */}
         <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setActiveTab('journal')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                activeTab === 'journal'
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span>AI Journal & Brainstorming</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setActiveTab('guardian')}
@@ -393,26 +406,32 @@ export default function Home() {
 
           <span className="text-[11px] font-mono text-zinc-500 hidden md:flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            Audit Scope: <code className="text-zinc-400">/users/{user.uid}/scans</code>
+            Audit Scope: <code className="text-zinc-400">/users/{user.uid}/journal</code>
           </span>
         </div>
 
-        {/* Tab 1: DevSecOps Code Guardian */}
+        {/* Tab 1: AI Journal & Brainstorming Chat Loop */}
+        {activeTab === 'journal' && (
+          <ChatInterface />
+        )}
+
+        {/* Tab 2: DevSecOps Code Guardian */}
         {activeTab === 'guardian' && (
           <CodeGuardian />
         )}
 
-        {/* Tab 2: AI Red-Team Arena */}
+        {/* Tab 3: AI Red-Team Arena */}
         {activeTab === 'redteam' && (
           <RedteamArena />
         )}
 
-        {/* Tab 3: Security Architecture Ledger */}
+        {/* Tab 4: Security Architecture Ledger */}
         {activeTab === 'architecture' && (
           <div className="space-y-6">
             <WisdomSynthesis entries={syncedEntries} />
           </div>
         )}
+
       </main>
 
       {/* Security Modals */}

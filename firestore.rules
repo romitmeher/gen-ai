@@ -6,12 +6,25 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Strict User Data Isolation: Users can only read, write, and delete their own journals
+    // Strict User Data Isolation
+    match /users/{userId}/scans/{scanId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     match /users/{userId}/journals/{journalId} {
       allow read, delete: if request.auth != null && request.auth.uid == userId;
       allow create, update: if request.auth != null 
         && request.auth.uid == userId 
         && (!('userId' in request.resource.data) || request.resource.data.userId == userId);
     }
+
+    match /users/{userId}/journal/{conversationId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/journal/{conversationId}/messages/{messageId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }
+

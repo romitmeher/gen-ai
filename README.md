@@ -1,7 +1,7 @@
-# AEGIS STUDIO — Autonomous DevSecOps & AI Red-Team Security Platform
+# AEGIS STUDIO — Autonomous DevSecOps & AI Journaling Security Platform
 ### Google AI Studio & Cloud Run Challenge — Competition Winner Edition
 
-A production-grade cybersecurity and AI defense studio powered by the Gemini API and Google Cloud Firestore. Built to solve the core ideathon challenge: **configuring AI Studio to think like a security engineer before generating code**, enforcing rigorous authorization barriers, secret custody, and mathematical tenant isolation.
+A production-grade cybersecurity and AI journaling platform powered by the Gemini API and Google Cloud Firestore. Built to solve the core challenge: **configuring Google AI Studio to think like a security engineer before generating code**, enforcing multi-turn conversation persistence, server-side JWT verification, secret custody, and owner-bound tenant isolation.
 
 ---
 
@@ -11,15 +11,18 @@ This application strictly satisfies the **5 Threat Zones** and OWASP Top 10 Web 
 
 1. **Input Surfaces (OWASP A03 / LLM02):**
    - Top-level JSON request deserialization ordering prevents unhandled crash vectors.
-   - Character bounding (25,000 chars for code analysis, 15,000 chars for prompt assault) prevents memory exhaustion and token flooding.
+   - Character bounding (25,000 chars for code analysis, 4,000 chars per conversation turn) prevents memory exhaustion and token flooding.
 2. **Planning & Reasoning (OWASP LLM01 - Prompt Injection):**
-   - Indirect Prompt Injection Defense: Boundary constraint fences ensure scanned source code and target system prompts are treated strictly as **untrusted passive data**, neutralizing evasion attacks and instruction smuggling.
+   - Indirect Prompt Injection Defense: System instruction boundary fences (`buildSafeSystemInstruction`) ensure user prompt text inside multi-turn chats is treated strictly as **untrusted passive data**, neutralizing evasion attacks and instruction smuggling.
 3. **Tool Execution & Broken Access Control (OWASP A01):**
    - Zero dynamic code execution (`eval()` prohibited).
-   - Server-side Bearer JWT token verification via the Firebase Admin SDK on all analysis routes (`/api/audit`, `/api/redteam`, `/api/scans`).
+   - Server-side Bearer JWT token verification via the Firebase Admin SDK on all API routes (`/api/journal/chat`, `/api/journal/summarize`, `/api/audit`, `/api/redteam`).
 4. **Memory & State (Cryptographic Path Scoping):**
-   - Owner-bound Firestore pathing (`/users/{userId}/scans/{scanId}`).
-   - `firestore.rules` enforces `request.auth.uid == userId` with zero insecure defaults (`allow read, write: if true;` strictly prohibited).
+   - Owner-bound Firestore pathing:
+     - `/users/{userId}/journal/{conversationId}`
+     - `/users/{userId}/journal/{conversationId}/messages/{messageId}`
+     - `/users/{userId}/scans/{scanId}`
+   - `firestore.rules` enforces `request.auth.uid == userId` with zero default-allow permissions (`allow read, write: if false;` default-deny at root).
    - Strict undefined-stripping (`JSON.parse(JSON.stringify(payload))`) before persistence ensures zero driver crashes.
 5. **Inter-System Communication & Secret Custody:**
    - Zero Gemini API keys or service account credentials in browser bundles.
@@ -27,55 +30,43 @@ This application strictly satisfies the **5 Threat Zones** and OWASP Top 10 Web 
 
 ---
 
-## ⚡ AEGIS Core Capabilities
+## ⚡ Core Capabilities & Route Index
 
-### 1. 🛡️ DevSecOps Code Guardian (`/api/audit`)
+### 1. 🧠 Multi-Turn AI Journaling & Brainstorming Loop (`/api/journal/chat`)
+- Accepts `{ conversationId, message, persona }` with server-side `Authorization: Bearer <token>` verification via Firebase Admin SDK.
+- Automatically loads prior turns for `conversationId` from `/users/{userId}/journal/{conversationId}/messages` (ordered by `createdAt`).
+- Appends new user messages and executes multi-turn Gemini calls using the Resilient Model Fallback Ladder.
+- Persists assistant replies back into `/users/{userId}/journal/{conversationId}/messages/{messageId}`.
+
+### 2. 📝 Automated Session Summarization (`/api/journal/summarize`)
+- Triggered on-demand via the "Save & Summarize" UI button or upon session conclusion.
+- Sends full conversation history to Gemini with a summarization-only system prompt.
+- Extracts a 2-3 sentence executive summary and 3-5 word session title, writing results directly to parent doc `/users/{userId}/journal/{conversationId}` (`{ summary, title, updatedAt }`).
+
+### 3. 🛡️ DevSecOps Code Guardian (`/api/audit`)
 - Automated static security analysis across source code, API handlers, Dockerfiles, and Firestore rules.
 - Maps detected flaws against **OWASP Top 10** and **CWE catalogs** (CWE-798, CWE-89, CWE-78, CWE-284).
-- Calculates a real-time **Security Posture Score (0–100)** with severity classification (CRITICAL, HIGH, MEDIUM, LOW).
-- Synthesizes a **Verified Remediation Diff Patch** with a 1-click copy button.
-- **Multi-Source Code & Repository Importer (`/api/import`):**
-  - **Full GitHub Repository Ingestion**: Ingests entire GitHub repositories (e.g. `https://github.com/owner/repo`), automatically indexes file trees via GitHub REST API, skips heavy media/binaries, and bundles all source files (`.py`, `.ts`, `.js`, etc.) into a cohesive multi-file project view for unified security analysis.
-  - **Direct GitHub File Import**: Fetches individual files directly from public repositories or `raw.githubusercontent.com`.
-  - **Google Drive & Docs Integration**: Ingests public shareable documents and text files directly via file ID export.
-  - **Local File Upload & Drag-and-Drop**: Supports direct local file uploads (.ts, .py, .rules, Dockerfile, etc.) up to 500KB.
-  - **Enterprise Anti-SSRF Protection**: Strict domain allowlist (`github.com`, `drive.google.com`, `docs.google.com`), loopback/private IP blocking (`127.0.0.1`, `10.*`, `192.168.*`, `172.16.*`, `169.254.169.254`), and 25,000 char bounded ingestion.
-- Pre-loaded with 1-click vulnerability presets:
-  - *Hardcoded API Key & Insecure Deserialization*
-  - *Insecure Firestore Security Rules (Public Read/Write)*
-  - *SQL & Command Injection Vector*
+- Calculates a real-time **Security Posture Score (0–100)** with severity classification (CRITICAL, HIGH, MEDIUM, LOW) and verified remediation diff patches.
 
-### 2. ⚔️ Adversarial AI Red-Team Arena (`/api/redteam`)
-- Autonomous multi-vector adversarial assault testing against LLM system prompts and agent instructions.
-- Simulates real-world exploit vectors:
-  1. *Direct Instruction Override & DAN Persona Hijacking* (OWASP LLM01)
-  2. *System Prompt Extraction & Exfiltration* (OWASP LLM06)
-  3. *Delimiter Smuggling & XML/Markdown Breakout* (OWASP LLM01)
-  4. *Indirect Payload Ingestion & Tool Hijacking* (OWASP LLM07)
-- Live penetration scorecard: **Resilience Score (0–100)** with simulated outcomes (`BREACHED` vs. `DEFENDED`).
-- Synthesizes an **AEGIS Hardened System Prompt** incorporating immutable priority rules, passive data fences, and anti-leakage clauses.
+### 4. ⚔️ Adversarial AI Red-Team Arena (`/api/redteam`)
+- Autonomous multi-vector adversarial assault testing against LLM system prompts and agent instructions (DAN jailbreaks, delimiter smuggling, prompt extraction).
 
-### 3. 🛡️ Live Security Posture Command Center
-- Live 4-tab interactive command center where judges can test:
-  - **5 Threat Zones Matrix** with real-time pass/fail telemetry.
-  - **Firestore Rules Inspector** verifying mathematical user isolation.
-  - **Prompt Injection Defense Simulator** firing live payloads.
-  - **Gemini Fallback Ladder Telemetry**.
-
-### 4. ⚡ Resilient Gemini Fallback Ladder
+### 5. ⚡ Resilient Gemini Fallback Ladder
 - Zero-crash failover ladder:
   `gemini-3.6-flash` (Primary) &rarr; `gemini-3.1-flash-lite` (High Availability) &rarr; `gemini-flash-latest` (Dynamic Alias) &rarr; `gemini-3.7-flash` (Deep Reasoning).
 - Catches status codes `503`, `429`, `404`, and `500` to guarantee uninterrupted uptime.
 
-### 5. 🚀 Instant Evaluator Sandbox
-- 1-click preview mode allowing hackathon judges to immediately test all features without requiring localhost Google OAuth setup.
+### 6. 🔐 Sandbox Authentication Model (Ephemeral Demo Auth)
+- Sandbox mode uses **Ephemeral Demo Auth** via `signInAnonymously(auth)`.
+- Visitors automatically provision an anonymous Firebase Auth session receiving a genuine JWT ID token signed by Firebase Auth.
+- Evaluators flow through the exact same server-side Bearer JWT verification (`verifyIdToken(token)`) and UID-scoped path isolation (`/users/{anonymousUid}/journal/...`) without bypassing security middleware or routing around authentication checks.
 
 ---
 
 ## Prerequisites
 
 1. **Google Cloud Platform Project** with active billing.
-2. **Firebase Project** configured with Authentication (Google Sign-In) and Cloud Firestore in Native mode.
+2. **Firebase Project** configured with Authentication (Google Sign-In + Anonymous Auth) and Cloud Firestore in Native mode.
 3. **Google Cloud CLI (`gcloud`)** installed and authenticated.
 4. **Node.js 20+** installed.
 
@@ -98,7 +89,7 @@ Create a Google Cloud Secret Manager secret for your Gemini API key and grant ac
 ```bash
 # Create and populate the secret
 gcloud secrets create GEMINI_API_KEY --replication-policy="automatic"
-echo -n "YOUR_GEMINI_API_KEY" | gcloud secrets versions add GEMINI_API_KEY --data-file=-
+echo -n "YOUR_API_KEY" | gcloud secrets versions add GEMINI_API_KEY --data-file=-
 
 # Grant the default Cloud Run service account access to read the secret
 gcloud secrets add-iam-policy-binding GEMINI_API_KEY \
@@ -119,12 +110,24 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Strict User Data Isolation: Users can only read and write their own security scans
+    // Owner-bound isolation for security audit scans
     match /users/{userId}/scans/{scanId} {
-      allow read, delete: if request.auth != null && request.auth.uid == userId;
-      allow create, update: if request.auth != null 
-        && request.auth.uid == userId 
-        && (!('userId' in request.resource.data) || request.resource.data.userId == userId);
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Owner-bound isolation for journal entry reflections
+    match /users/{userId}/journals/{journalId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Owner-bound isolation for multi-turn journal conversations
+    match /users/{userId}/journal/{conversationId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Owner-bound isolation for conversation message turns
+    match /users/{userId}/journal/{conversationId}/messages/{messageId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

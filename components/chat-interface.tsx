@@ -59,6 +59,7 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [persona, setPersona] = useState<ReflectionPersona>('systems');
+  const [conversationId, setConversationId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -66,6 +67,7 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
   const [saveFailed, setSaveFailed] = useState(false);
   const [lastModelUsed, setLastModelUsed] = useState<string>('gemini-3.6-flash');
   const [isListening, setIsListening] = useState(false);
+  const [sessionSummary, setSessionSummary] = useState<{ title: string; summary: string } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -166,15 +168,15 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
     if (!textToSend.trim() || isLoading || isSubmittingRef.current) return;
 
     if (!user) {
-      setErrorMessage('Please sign in or use Sandbox Mode to start reflection.');
+      setErrorMessage('Please sign in or launch Sandbox Mode to begin journaling.');
       return;
     }
 
     isSubmittingRef.current = true;
     const userMessage: Message = { role: 'user', content: textToSend.trim() };
-    const newMessages = [...messages, userMessage];
+    const optimisticMessages = [...messages, userMessage];
 
-    setMessages(newMessages);
+    setMessages(optimisticMessages);
     setInput('');
     setIsLoading(true);
     setErrorMessage('');
@@ -190,14 +192,15 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
         throw new Error('Authentication session expired. Please sign in again.');
       }
 
-      const res = await fetch('/api/chat', {
+      const res = await fetch('/api/journal/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          messages: newMessages,
+          conversationId,
+          message: textToSend.trim(),
           persona,
         }),
         signal: chatAbortControllerRef.current.signal,
@@ -209,9 +212,16 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
         throw new Error(data?.error || 'Failed to get response from assistant');
       }
 
-      if (data?.reply) {
+      if (data?.conversationId) {
+        setConversationId(data.conversationId);
+      }
+
+      if (Array.isArray(data?.messages) && data.messages.length > 0) {
+        setMessages(data.messages);
+      } else if (data?.reply) {
         setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
       }
+
       if (data?.modelUsed) {
         setLastModelUsed(data.modelUsed);
       }
@@ -233,11 +243,11 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
     }
   };
 
-  const saveJournal = async () => {
+  const saveAndSummarize = async () => {
     if (messages.length === 0 || isSaving) return;
 
     if (!user) {
-      setErrorMessage('Please sign in or use Sandbox Mode to save your reflection.');
+      setErrorMessage('Please sign in or launch Sandbox Mode to summarize your reflection.');
       return;
     }
 
@@ -254,15 +264,15 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
         throw new Error('Authentication session expired. Please sign in again.');
       }
 
-      const res = await fetch('/api/journal', {
+      const res = await fetch('/api/journal/summarize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          conversationId,
           messages,
-          persona,
         }),
         signal: saveAbortControllerRef.current.signal,
       });
@@ -270,14 +280,16 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        throw new Error(data?.error || 'Failed to save reflection');
+        throw new Error(data?.error || 'Failed to summarize conversation');
       }
 
       setSaveSuccess(true);
-      setTimeout(() => {
-        setMessages([]);
-        setSaveSuccess(false);
-      }, 2500);
+      if (data?.summary) {
+        setSessionSummary({
+          title: data.title || 'Brainstorming Session',
+          summary: data.summary,
+        });
+      }
     } catch (err: any) {
       if (
         err?.name === 'AbortError' ||
@@ -286,13 +298,23 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
       ) {
         return;
       }
-      console.error('Save error:', err);
+      console.error('Summarize error:', err);
       setSaveFailed(true);
-      setErrorMessage(err?.message || 'Failed to persist reflection to Cloud Firestore. Please retry.');
+      setErrorMessage(err?.message || 'Failed to generate session summary. Please retry.');
     } finally {
       setIsSaving(false);
     }
   };
+
+  const startNewSession = () => {
+    setMessages([]);
+    setConversationId('');
+    setSessionSummary(null);
+    setSaveSuccess(false);
+    setSaveFailed(false);
+    setErrorMessage('');
+  };
+
 
   const personaIcons: Record<ReflectionPersona, any> = {
     systems: Layers,
@@ -322,45 +344,69 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
           </div>
         </div>
 
-        {/* Primary Action Button */}
-        {messages.length > 0 && (
-          <motion.button
-            layout
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            type="button"
-            onClick={saveJournal}
-            disabled={isSaving || saveSuccess}
-            aria-label="Save and distill reflection"
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all shadow-sm ${
-              saveSuccess
-                ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                : saveFailed
-                ? 'bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 border border-rose-500/30'
-                : 'bg-zinc-100 hover:bg-white text-zinc-900'
-            }`}
-          >
-            {isSaving ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : saveSuccess ? (
-              <Check className="w-3.5 h-3.5" />
-            ) : saveFailed ? (
-              <RefreshCw className="w-3.5 h-3.5" />
-            ) : (
-              <Bookmark className="w-3.5 h-3.5" />
-            )}
-            <span>
-              {isSaving
-                ? 'Distilling with Gemini...'
-                : saveSuccess
-                ? 'Reflection Saved'
-                : saveFailed
-                ? 'Retry Save'
-                : 'Save Reflection'}
-            </span>
-          </motion.button>
-        )}
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {messages.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={startNewSession}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all"
+                title="Start a fresh conversation loop"
+              >
+                New Session
+              </button>
+
+              <motion.button
+                layout
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                type="button"
+                onClick={saveAndSummarize}
+                disabled={isSaving || saveSuccess}
+                aria-label="Save and summarize conversation"
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all shadow-sm ${
+                  saveSuccess
+                    ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                    : saveFailed
+                    ? 'bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 border border-rose-500/30'
+                    : 'bg-zinc-100 hover:bg-white text-zinc-900 font-semibold'
+                }`}
+              >
+                {isSaving ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : saveSuccess ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : saveFailed ? (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                ) : (
+                  <Bookmark className="w-3.5 h-3.5" />
+                )}
+                <span>
+                  {isSaving
+                    ? 'Summarizing with Gemini...'
+                    : saveSuccess
+                    ? 'Summarized & Saved'
+                    : saveFailed
+                    ? 'Retry Summarize'
+                    : 'Save & Summarize'}
+                </span>
+              </motion.button>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Session Summary Banner */}
+      {sessionSummary && (
+        <div className="px-5 py-3 bg-emerald-500/10 border-b border-emerald-500/20 text-xs text-emerald-200 flex items-start gap-2.5">
+          <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <span className="font-semibold text-emerald-300 block">{sessionSummary.title}</span>
+            <p className="text-zinc-300 leading-relaxed text-[11px]">{sessionSummary.summary}</p>
+          </div>
+        </div>
+      )}
 
       {/* Reflection Persona Switcher */}
       <div className="px-5 py-2 bg-white/[0.01] border-b border-white/[0.06] flex items-center gap-1.5 overflow-x-auto">
@@ -396,6 +442,7 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
             <div className="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-3 text-zinc-300">
               <Sparkles className="w-5 h-5" />
             </div>
+
             <h3 className="text-sm font-semibold text-zinc-200 mb-1">
               Active Strategy & Drafting Canvas
             </h3>
@@ -485,7 +532,7 @@ export function ChatInterface({ initialPrompt = '' }: { initialPrompt?: string }
             {saveFailed && (
               <button
                 type="button"
-                onClick={saveJournal}
+                onClick={saveAndSummarize}
                 className="font-medium underline hover:text-rose-900 ml-2"
               >
                 Retry
